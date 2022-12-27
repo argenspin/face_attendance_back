@@ -154,6 +154,18 @@ class StudentRetrieveView(APIView):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         student_serialized = StudentSerializer(studentfields,many=True)
         return Response(student_serialized.data,status=status.HTTP_200_OK)
+
+    #To get student' face photo using id
+    def post(self,request):
+        student_id = request.data['id']
+        try:
+            student = Student.objects.get(id=student_id)
+            face_photo_b64 = student.face_photo_b64
+            json_data = {'face_photo_b64':face_photo_b64}
+            return Response(json_data,status=status.HTTP_200_OK)
+        except:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
 class StudentCreateView(APIView):
     parser_classes = [MultiPartParser,FormParser]
 
@@ -169,12 +181,11 @@ class StudentCreateView(APIView):
 
             try:
                 face_check.addNewStudentFace(filename,student_id,face_photo_b64)
+                return Response(serializer.data,status=status.HTTP_200_OK)
             except:    
                 student = Student.objects.get(id=serializer.data['id'])
                 student.delete()
                 return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
-
-            return Response(serializer.data,status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class StudentEditView(APIView):

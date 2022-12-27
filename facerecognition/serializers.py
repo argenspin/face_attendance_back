@@ -84,6 +84,7 @@ class TeacherRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherUser
         fields = ['id','name','subject','username']
+
 '''
 class TeacherDeleteSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -99,7 +100,10 @@ class StudentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Student
-        fields = ['id','name','dob','stud_class_name','face_photo_b64']
+        fields = ['id','name','dob','stud_class_name']
+
+'''class StudentFacePhotoSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField'''
 
 class StudentCreateSerializer(serializers.ModelSerializer):
     class Meta:
