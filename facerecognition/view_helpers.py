@@ -2,6 +2,8 @@ from django.core.mail import send_mail
 import threading
 import jwt
 from .models import StudClass,TeacherUser
+from concurrent.futures import ProcessPoolExecutor
+import time
 
 #function to identify type of user from jwt token
 def identifyUserType(request):
@@ -35,3 +37,14 @@ def register_completion_mail_send(mail_subject,teacher_email):
         recipient_list=[teacher_email],
         fail_silently=False,
     )
+
+def getImagesToDetectFromRequest(request):
+    images_to_detect = []
+    results = []
+    for i in range(0,50):
+        current_image_name = 'image_'+str(i)
+        image = request.data[current_image_name]
+        images_to_detect.append(request.data[current_image_name])
+
+    return images_to_detect
+

@@ -1,6 +1,8 @@
 from django.urls import path
 from rest_framework_simplejwt import views as jwt_views
-from .views import TeacherUserCreate,TeacherRetrieveView,ObtainTokenPairWithColorView,TeacherUserCompleteRegistration,BlackListRefreshView,TeacherDeleteView,StudentRetrieveView,StudentRetrieveView,RetrieveUserTypeAndStudClassName,RetrieveTeacherUserName,StudClassRetrieve,StudentCreateView,StudentEditView,TeacherEditView,StudentDeleteView
+from rest_framework_simplejwt.views import TokenBlacklistView
+
+from .views import TeacherUserCreate,TeacherRetrieveView,ObtainTokenPairWithColorView,TeacherUserCompleteRegistration,TeacherDeleteView,StudentRetrieveView,StudentRetrieveView,RetrieveUserTypeAndStudClassName,RetrieveTeacherUserName,StudClassRetrieve,StudentCreateView,StudentEditView,TeacherEditView,StudentDeleteView,DetectFaceView,CheckImageForFaceView,StudClassOperationsForClassesView,StudClassCreateView,StudClassRetrieveTeachersView,StudClassSubjectsRetrieveView,StudClassSubjectsCreateView,StudClassSubjectsEditView,TimeTableRetrieveView,StudClassManageView,TimeTableRetrieveSubjectNames,LabStudClassRetrieveView
 urlpatterns = [
     path('teacher/create/', TeacherUserCreate.as_view(), name="create_teacher"),
 
@@ -8,7 +10,7 @@ urlpatterns = [
 
     path('token/obtain/', ObtainTokenPairWithColorView.as_view(), name='token_create'),  # override sjwt stock token
 
-    path('token/blacklist/', BlackListRefreshView.as_view(), name="blacklist_token"),
+    path('token/blacklist/', TokenBlacklistView.as_view(), name="blacklist_token"),
 
     path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name='token_refresh'),
 
@@ -22,6 +24,14 @@ urlpatterns = [
     path('teacher/delete/',TeacherDeleteView.as_view(), name='teacher_delete',),
 
     path('studclass/retrieve/',StudClassRetrieve.as_view(), name='stud_class_operations'),
+
+    path('studclass/lab/retrieve/',LabStudClassRetrieveView.as_view(),name = 'lab_retrieve'),
+
+    path('studclassforclasses/retrieve/',StudClassOperationsForClassesView.as_view(), name='stud_class_for_classes_operations'),
+
+    path('studclass/create/',StudClassCreateView.as_view(),name="studclass_create"),
+
+    path('studclass/manage/teacher/retrieve',StudClassRetrieveTeachersView.as_view(), name="retrieve_teachers_without_class"),
 
     path('student/retrieve/',StudentRetrieveView.as_view(), name='student_retrieve'),
 
@@ -37,6 +47,23 @@ urlpatterns = [
 
     path('student/delete/',StudentDeleteView.as_view(),name="delete_student"),
 
-    path('teacher/retrieve/username/', RetrieveTeacherUserName.as_view(), name="retrieve_user_type_and_stud_class_name")
+    path('teacher/retrieve/username/', RetrieveTeacherUserName.as_view(), name="retrieve_user_type_and_stud_class_name"),
+    
+    path('detect/face/',DetectFaceView.as_view(),name="edit_student"),
+
+    path('face_photo/check_valid/',CheckImageForFaceView.as_view(), name="check_image_for_face"),
+
+    path('classsubjects/retrieve/',StudClassSubjectsRetrieveView.as_view(), name="get_stud_class_subjects"),
+
+    path('classsubject/create/',StudClassSubjectsCreateView.as_view(), name="create_subject"),
+
+    path('classsubject/edit/',StudClassSubjectsEditView.as_view(),name='edit_subject'),
+
+    path('timetable/retrieve/',TimeTableRetrieveView.as_view(),name="retrieve_timetable"),
+
+    path('timetable/retrieve/subjectnames/',TimeTableRetrieveSubjectNames.as_view(),name='retrieve_timetable_with_subject_names'),
+
+    path('studclass/manage/',StudClassManageView.as_view(),name="manage_studclass")
     #'path('teacher/edit/',TeacherEditView.as_view(), name="teacher_edit"),
 ]
+ 

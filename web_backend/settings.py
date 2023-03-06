@@ -114,8 +114,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'face_attendance_system',
-        'USER': 'projectuser',
-        'PASSWORD': 'password',
+        'USER': 'argenspin',
+        'PASSWORD': '2004',
         'HOST': 'localhost',
         'PORT': '',
     }
@@ -169,3 +169,4 @@ EMAIL_HOST_PASSWORD = 'ycavsjpfyweamsdl'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'CAS ADMIN'
+DATA_UPLOAD_MAX_MEMORY_SIZE = 102428800

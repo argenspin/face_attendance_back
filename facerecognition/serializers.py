@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .models import TeacherUser,Student,StudClass
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from .models import TeacherUser,StudClass
+from .models import TeacherUser,StudClass,Subject
 
 User = get_user_model()
 
@@ -48,7 +48,7 @@ class TeacherUserCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = TeacherUser
-        fields = ('email','username','name','subject')
+        fields = ('email','username','name')
         #extra_kwargs = {'password': {'write_only': True}} #Dont write password to database yet
 
     def create(self, validated_data):
@@ -75,15 +75,15 @@ class TeacherCompleteRegistrationSerializer(serializers.ModelSerializer):
 class TeacherEditSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required = True)
     name = serializers.CharField(required=True)
-    subject = serializers.CharField(required=True)
+    # subject = serializers.CharField(required=True)
     class Meta:
         model = TeacherUser
-        fields = ['username','name','subject']
+        fields = ['username','name']
 
 class TeacherRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = TeacherUser
-        fields = ['id','name','subject','username']
+        fields = ['id','name','username','is_staff']
 
 '''
 class TeacherDeleteSerializer(serializers.Serializer):
@@ -91,10 +91,44 @@ class TeacherDeleteSerializer(serializers.Serializer):
     class Meta:
         fields = ['id']
 '''
+#Serializer to also include teacher name in retrieving stud_classes
+class StudClassForClassesSerializer(serializers.ModelSerializer):
+    teacher_name = serializers.SerializerMethodField(method_name='get_teacher_name') #teacher name
+    def get_teacher_name(self,studclassobj):
+        try:
+            teacher_name = TeacherUser.objects.get(username=studclassobj.teacher).name
+
+        except:
+            teacher_name = ''
+        return teacher_name
+    class Meta:
+        model = StudClass
+        fields = ['stud_class_name','teacher','teacher_name','is_lab']
+
 class StudClassRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudClass
         fields = ['teacher']
+
+class LabStudClassRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudClass
+        fields = ['stud_class_name','teacher','is_lab']
+# class StudClassCreateSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = StudClass
+#         fields = ['stud_class_name']
+
+class StudClassSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = StudClass
+        fields = ['stud_class_name','teacher','is_lab']
+
+class StudClassCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudClass
+        fields = ['stud_class_name','teacher','is_lab']
 
 class StudentSerializer(serializers.ModelSerializer):
     
@@ -116,8 +150,22 @@ class StudentEditSerializer(serializers.ModelSerializer):
         model = Student
         fields = ['id','name','stud_class_name','face_photo_b64']
 
-class StudClassSerializer(serializers.ModelSerializer):
-
+class ClassSubjectsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = StudClass
-        fields = ['stud_class_name','teacher']
+        model = Subject
+        fields = ['id','name','stud_class_name','lab_name','is_lab']
+
+class ClassSubjectsCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subject
+        fields = ['id','name','stud_class_name','lab_name','is_lab']
+
+class ClassSubjectEditSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=True)
+    name = serializers.CharField(required=True)
+    stud_class_name = serializers.CharField(required=True)
+    lab_name = serializers.CharField(required=True)
+    class Meta:
+        model = Subject
+        fields = ['id','name','stud_class_name','lab_name']
+
