@@ -254,7 +254,7 @@ class StudClassRetrieve(APIView):
 
     def get(self, request, *args, **kwargs):
         studclassFields = StudClass.objects.all()
-        studclass_serialized = StudClassSerializer(studclassFields,many=True)
+        studclass_serialized = StudClassForClassesSerializer(studclassFields,many=True)
         return Response(studclass_serialized.data)
     
     def post(self, request, *args, **kwargs):
@@ -466,11 +466,12 @@ class StudClassManageView(APIView):
         new_timetable = ujson.loads(request.data['new_timetable'])
         print(request.data)
         stud_class_obj = StudClass.objects.get(stud_class_name=stud_class_name)
+
         if request.data['is_lab']=='false':
             stud_class_obj.is_lab = False
         elif request.data['is_lab']=='true':
-            stud_class_obj.is_lab = True
-            
+            stud_class_obj.is_lab = True 
+
         if request.data['teacher_id']!='' and request.data['teacher_id']!='null':
             teacher_obj = TeacherUser.objects.get(id=int(request.data['teacher_id']))
             print("if part worked")
@@ -479,8 +480,10 @@ class StudClassManageView(APIView):
         else:
             stud_class_obj.teacher = None
             stud_class_obj.save()
-
+        
         timetable_obj = TimeTable.objects.get(stud_class_name=stud_class_obj)
+
+
 
         monday_subs = []
         for index in new_timetable['Monday'].keys():
@@ -546,6 +549,10 @@ class StudClassManageView(APIView):
                 lab_timetable_obj.friday = new_lab_subs
                 lab_timetable_obj.save()
         timetable_obj.friday = friday_subs
+        
+        
+        # stud_class_obj.stud_class_name = request.data['stud_class_name']
+
 
 
         # timetable_obj.monday = [new_timetable['Monday'][index] for index in new_timetable['Monday'].keys()]
