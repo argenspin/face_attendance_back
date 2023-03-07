@@ -2,12 +2,12 @@ from django.shortcuts import render
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import permissions,status
 from django.core import serializers
-from .serializers import MyTokenObtainPairSerializer,TeacherUserCreateSerializer,StudClassSerializer,StudentSerializer,TeacherCompleteRegistrationSerializer,TeacherRetrieveSerializer,StudentCreateSerializer,StudentEditSerializer,TeacherEditSerializer,StudClassForClassesSerializer,ClassSubjectsSerializer,ClassSubjectsCreateSerializer,LabStudClassRetrieveSerializer,StudClassCreateSerializer
+from .serializers import MyTokenObtainPairSerializer,TeacherUserCreateSerializer,StudClassSerializer,StudentSerializer,TeacherCompleteRegistrationSerializer,TeacherRetrieveSerializer,StudentCreateSerializer,StudentEditSerializer,TeacherEditSerializer,StudClassForClassesSerializer,ClassSubjectsSerializer,ClassSubjectsCreateSerializer,LabStudClassRetrieveSerializer,StudClassCreateSerializer,AttendanceRetrieveSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import QueryDict
 from rest_framework.parsers import MultiPartParser, FormParser
-from .models import TeacherUser,Student,StudClass,Subject,TimeTable
+from .models import TeacherUser,Student,StudClass,Subject,TimeTable,Attendance
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 import requests
@@ -17,6 +17,7 @@ import jwt
 import threading
 from . view_helpers import identifyTeacherStudClass,identifyTeacherUserId,identifyUserType,register_completion_mail_send,getImagesToDetectFromRequest
 from . import face_check
+from datetime import date,datetime
 
 back_url = "http://localhost:8000/api/"
 front_url = "http://localhost:3000/"
@@ -604,22 +605,173 @@ class DetectFaceView(APIView):
             student = Student.objects.get(id=detected_id)
             student_name = student.name
         return Response({'matched_name':student_name},status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
-        #print(detected_name)
-        return Response({'matched_name':detected_id},status=status.HTTP_200_OK)
 
-'''       face_to_detect = request.data['face_photo_b64']
-
-        filename = 'face_data/'+str(stud_class_name) + '.fac'
-        print(filename)
+class AttendanceCurrentSubjectView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    parser_classes = [MultiPartParser,FormParser]
+    def post(self,request):
+        current_subject_data = {'id':'','subject_name':'Nothing','timetable_subject_index':''}
+        stud_class_name = request.data['stud_class_name']
         try:
-            detected_id = face_check.detectFaceFromPickle(filename,face_to_detect)
-            print(detected_id)
-            json_data = {'detected_id': str(detected_id)}
-            return Response(json_data,status=status.HTTP_202_ACCEPTED)
+            stud_class_obj = StudClass.objects.get(stud_class_name=stud_class_name)
         except:
-            return Response(status=status.HTTP_406_NOT_ACCEPTABLE)'''
+            return Response(current_subject_data,status=status.HTTP_200_OK)
 
+        timetable_obj = TimeTable.objects.get(stud_class_name=stud_class_obj)
+
+        day = int(datetime.now().weekday())
+        hour = int(datetime.now().strftime('%H'))
+        minutes = int(datetime.now().strftime('%M'))
+        timetable_subject_index = -1
+        if(hour==9 and minutes>=30 and minutes<=45):
+            timetable_subject_index = 0
+        elif(hour==10 and minutes>=30 and minutes<=45):
+            timetable_subject_index = 1
+        elif(hour==11 and minutes>=35 and minutes<=50):
+            timetable_subject_index = 2
+        elif(hour==13 and minutes>=30 and minutes<=45):
+            timetable_subject_index = 3
+        elif(hour==14 and minutes>=30 and minutes<=45):
+            timetable_subject_index = 4
+        
+        
+        if(day==0): 
+            subject_id = timetable_obj.monday[timetable_subject_index]
+        elif(day==1):
+            subject_id = timetable_obj.tuesday[timetable_subject_index]
+        elif(day==2):
+            subject_id = timetable_obj.wednesday[timetable_subject_index]
+        elif(day==3):
+            subject_id = timetable_obj.thursday[timetable_subject_index]
+        elif(day==4):
+            subject_id = timetable_obj.friday[timetable_subject_index]
+        # if verifying on weekends
+        else:
+            return Response(current_subject_data,status=status.HTTP_200_OK)
+        
+        # checking if verifying after class hours
+        if timetable_subject_index!=-1:
+            subject_obj = Subject.objects.get(id=subject_id)
+        else:
+            return Response(current_subject_data,status=status.HTTP_200_OK)
+
+        
+        # return empty data if studclass obj is not lab and current subject is lab
+        if subject_obj.is_lab == True and subject_obj.lab_name != stud_class_obj:
+            return Response(current_subject_data,status=status.HTTP_200_OK)
+        
+        subject_name = subject_obj.name
+        current_subject_data = {'id':subject_id,'subject_name':subject_name,'timetable_subject_index':timetable_subject_index}
+        return Response(current_subject_data,status=status.HTTP_200_OK)
+
+
+
+class AttendanceMarkingView(APIView):
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+    parser_classes = [MultiPartParser,FormParser]
+    def post(self,request):
+
+        verfication_status = 'Verification Failed'
+        already_marked = False
+
+
+        images_to_detect = ujson.loads(request.data['images_to_detect'])
+        timetable_subject_index = int(request.data['timetable_subject_index'])
+        stud_class_name = request.data['stud_class_name']  
+        stud_class_obj = StudClass.objects.get(stud_class_name=stud_class_name)
+        subject_obj = Subject.objects.get(id=request.data['subject_id'])      
+        
+        if(subject_obj.is_lab == True):
+            stud_class_name = subject_obj.stud_class_name.stud_class_name
+
+        detected_id = face_check.predictStudentIdFromFace(images_to_detect, stud_class_name)
+        if(detected_id==-1):
+            student_name = "Unknown"
+            return Response({'matched_name':student_name,'verification_status':verfication_status,'already_marked':already_marked},status=status.HTTP_200_OK)
+        else:
+            verfication_status = 'Verification Complete'
+            student_obj = Student.objects.get(id=detected_id)
+            try:
+                subject_obj = Subject.objects.get(id=request.data['subject_id'])
+            except:   
+                verfication_status = 'Invalid Subject'
+                return Response({'matched_name':student_name,'verification_status':verfication_status,'already_marked':already_marked},status=status.HTTP_200_OK)
+            
+            try:
+                if subject_obj.is_lab == True:
+                    # set stud_class_obj as the lab_name object of the subject for taking attendance from lab for a class
+                    stud_class_obj = StudClass.objects.get(stud_class_name=subject_obj.stud_class_name.stud_class_name)
+                    attendance_obj = Attendance.objects.get(stud_class_name=stud_class_obj,student=student_obj,date=date.today())
+                else:
+                    attendance_obj = Attendance.objects.get(stud_class_name=stud_class_obj,student=student_obj,date=date.today())
+
+            except:    
+                if subject_obj.is_lab == True:
+                    # set stud_class_obj as the lab_name object of the subject for taking attendance from lab for a class
+                    stud_class_obj = StudClass.objects.get(stud_class_name=subject_obj.stud_class_name.stud_class_name)
+                    attendance_obj = Attendance.objects.create(stud_class_name=stud_class_obj,student=student_obj,date=date.today())
+                else:
+                    attendance_obj = Attendance.objects.create(stud_class_name=stud_class_obj,student=student_obj,date=date.today())            
+
+            hour = int(datetime.now().strftime('%H'))
+            minutes = int(datetime.now().strftime('%M'))
+            print(hour,minutes,timetable_subject_index)
+
+            
+              
+            if(hour==9 and minutes>=30 and minutes<=45 and timetable_subject_index==0):
+                print("worked")
+                if attendance_obj.subject1_att == True:
+                    already_marked = True
+                    verfication_status = 'Already Verified'
+                else:
+                    attendance_obj.subject1_att = True
+            elif(hour==10 and minutes>=30 and minutes<=45 and timetable_subject_index==1):
+                if attendance_obj.subject2_att == True:
+                    already_marked = True
+                    verfication_status = 'Already Verified'
+                else:
+                    attendance_obj.subject2_att = True
+            elif(hour==11 and minutes>=35 and minutes<=50 and timetable_subject_index==2):
+                if attendance_obj.subject3_att == True:
+                    already_marked = True
+                    verfication_status = 'Already Verified'
+                else:
+                    attendance_obj.subject3_att = True
+            elif(hour==13 and minutes>=30 and minutes<=45 and timetable_subject_index==3):
+                if attendance_obj.subject4_att == True:
+                    already_marked = True
+                    verfication_status = 'Already Verified'
+                else:
+                    attendance_obj.subject4_att = True
+            elif(hour==14 and minutes>=30 and minutes<=45 and timetable_subject_index==4):
+                if attendance_obj.subject5_att == True:
+                    already_marked = True
+                    verfication_status = 'Already Verified'
+                else:
+                    attendance_obj.subject5_att = True
+            else:
+                verfication_status = "No class now!"
+                return Response({'matched_name':student_obj.name,'verification_status':verfication_status,'already_marked':already_marked},status=status.HTTP_200_OK)
+
+
+            attendance_obj.save()
+            student_name = student_obj.name
+            return Response({'matched_name':student_name,'verification_status':verfication_status,'already_marked':already_marked},status=status.HTTP_200_OK)
+
+class AttendanceRetrieveView(APIView):
+    def get(self,request):
+        attendance_objs = Attendance.objects.all()
+        attendances_serialized = AttendanceRetrieveSerializer(attendance_objs,many=True)
+        return Response(attendances_serialized.data,status=status.HTTP_200_OK)
+        
+    def post(self,request):
+        studclass_obj = StudClass.objects.get(stud_class_name=request.data['stud_class_name'])
+        attendance_objs = Attendance.objects.filter(stud_class_name=studclass_obj)
+        attendances_serialized = AttendanceRetrieveSerializer(attendance_objs,many=True)
+        return Response(attendances_serialized.data,status=status.HTTP_200_OK)
 
         
 

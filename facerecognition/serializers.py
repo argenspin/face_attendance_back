@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .models import TeacherUser,Student,StudClass
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from .models import TeacherUser,StudClass,Subject
+from .models import TeacherUser,StudClass,Subject,Attendance
 
 User = get_user_model()
 
@@ -168,4 +168,16 @@ class ClassSubjectEditSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = ['id','name','stud_class_name','lab_name']
+
+class AttendanceRetrieveSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField(method_name='get_student_name') #student name
+    def get_student_name(self,attendance_obj):
+        student_name = attendance_obj.student.name
+        return student_name
+    class Meta:
+        model = Attendance
+        fields = ['id','stud_class_name','student','student_name','date',
+                  'subject1_att','subject2_att','subject3_att','subject4_att','subject5_att'
+                  ]
+
 

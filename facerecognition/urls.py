@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework_simplejwt.views import TokenBlacklistView
 
-from .views import TeacherUserCreate,TeacherRetrieveView,ObtainTokenPairWithColorView,TeacherUserCompleteRegistration,TeacherDeleteView,StudentRetrieveView,StudentRetrieveView,RetrieveUserTypeAndStudClassName,RetrieveTeacherUserName,StudClassRetrieve,StudentCreateView,StudentEditView,TeacherEditView,StudentDeleteView,DetectFaceView,CheckImageForFaceView,StudClassOperationsForClassesView,StudClassCreateView,StudClassRetrieveTeachersView,StudClassSubjectsRetrieveView,StudClassSubjectsCreateView,StudClassSubjectsEditView,TimeTableRetrieveView,StudClassManageView,TimeTableRetrieveSubjectNames,LabStudClassRetrieveView
+from .views import TeacherUserCreate,TeacherRetrieveView,ObtainTokenPairWithColorView,TeacherUserCompleteRegistration,TeacherDeleteView,StudentRetrieveView,StudentRetrieveView,RetrieveUserTypeAndStudClassName,RetrieveTeacherUserName,StudClassRetrieve,StudentCreateView,StudentEditView,TeacherEditView,StudentDeleteView,DetectFaceView,CheckImageForFaceView,StudClassOperationsForClassesView,StudClassCreateView,StudClassRetrieveTeachersView,StudClassSubjectsRetrieveView,StudClassSubjectsCreateView,StudClassSubjectsEditView,TimeTableRetrieveView,StudClassManageView,TimeTableRetrieveSubjectNames,LabStudClassRetrieveView,AttendanceMarkingView,AttendanceCurrentSubjectView,AttendanceRetrieveView
 urlpatterns = [
     path('teacher/create/', TeacherUserCreate.as_view(), name="create_teacher"),
 
@@ -63,7 +63,13 @@ urlpatterns = [
 
     path('timetable/retrieve/subjectnames/',TimeTableRetrieveSubjectNames.as_view(),name='retrieve_timetable_with_subject_names'),
 
-    path('studclass/manage/',StudClassManageView.as_view(),name="manage_studclass")
+    path('studclass/manage/',StudClassManageView.as_view(),name="manage_studclass"),
+
+    path('attendance/marking/',AttendanceMarkingView.as_view(),name='mark_attendance'),
+
+    path('attendance/currentsubject/',AttendanceCurrentSubjectView.as_view(),name='attendance_find_current_subject'),
+
+    path('attendance/retrieve/',AttendanceRetrieveView.as_view(),name='attendance_retreve_all'),
     #'path('teacher/edit/',TeacherEditView.as_view(), name="teacher_edit"),
 ]
  
