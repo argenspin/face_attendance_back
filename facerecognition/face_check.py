@@ -382,13 +382,15 @@ def findCurrentMatchedId(index,imageB64,model):
         print("Most probable percentage: ",most_probable*100,"%")
         if(most_probable>0.85):
             return predicted_id
-        elif most_probable>0.5 and second_most_probable<=(most_probable/2):
+        elif most_probable>0.5 and (second_most_probable+third_most_probable)<=(most_probable/2):
             return predicted_id
         elif most_probable<0.5:
-            if most_probable>0.45 and second_most_probable<(most_probable/2):
+            if (second_most_probable+third_most_probable)<=(most_probable/2):
                 return predicted_id
-            elif (second_most_probable+third_most_probable) <= (most_probable/2):
-                return predicted_id
+            # if most_probable>0.45 and second_most_probable<(most_probable/2):
+            #     return predicted_id
+            # elif (second_most_probable+third_most_probable) <= (most_probable/2):
+            #     return predicted_id
             else:
                 return -1
         else:

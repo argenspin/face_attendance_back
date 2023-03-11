@@ -134,7 +134,7 @@ class StudentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Student
-        fields = ['id','name','dob','stud_class_name']
+        fields = ['id','name','dob','stud_class_name','register_no','dob']
 
 '''class StudentFacePhotoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField'''
@@ -142,13 +142,13 @@ class StudentSerializer(serializers.ModelSerializer):
 class StudentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ['id','name','stud_class_name','face_photo_b64']
+        fields = ['id','name','stud_class_name','face_photo_b64', 'register_no','dob']
 
 class StudentEditSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=True)
     class Meta:
         model = Student
-        fields = ['id','name','stud_class_name','face_photo_b64']
+        fields = ['id','name','stud_class_name','face_photo_b64','register_no','dob']
 
 class ClassSubjectsSerializer(serializers.ModelSerializer):
     class Meta:

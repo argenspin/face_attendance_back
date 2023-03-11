@@ -15,7 +15,7 @@ import ujson
 from rest_framework_simplejwt.tokens import RefreshToken
 import jwt
 import threading
-from . view_helpers import identifyTeacherStudClass,identifyTeacherUserId,identifyUserType,register_completion_mail_send,getImagesToDetectFromRequest
+from . view_helpers import identifyTeacherStudClass,identifyTeacherUserId,identifyUserType,register_completion_mail_send,getImagesToDetectFromRequest,writeAttendanceDataToHtmlandGetPDF
 from . import face_check
 from datetime import date,datetime
 
@@ -195,6 +195,9 @@ class StudentEditView(APIView):
         if(serializer.is_valid()):
             student_id = serializer.data['id']
             student_name = serializer.data['name']
+            student_register_no = serializer.data['register_no']
+            student_dob = serializer.data['dob']
+
             face_photo_b64 = serializer.data['face_photo_b64']
             
             student = Student.objects.get(id=student_id)
@@ -206,6 +209,8 @@ class StudentEditView(APIView):
 
             #Update student values
             student.name = student_name
+            student.register_no = student_register_no
+            student.dob = student_dob
             #set new student stud_class
             student.stud_class_name = student_stud_class
             student.face_photo_b64 = face_photo_b64
@@ -628,7 +633,7 @@ class AttendanceCurrentSubjectView(APIView):
             timetable_subject_index = 0
         elif(hour==10 and minutes>=30 and minutes<=45):
             timetable_subject_index = 1
-        elif(hour==11 and minutes>=35 and minutes<=50):
+        elif(hour>=11 and minutes>=0 and minutes<=59):
             timetable_subject_index = 2
         elif(hour==13 and minutes>=30 and minutes<=45):
             timetable_subject_index = 3
@@ -762,6 +767,7 @@ class AttendanceMarkingView(APIView):
             return Response({'matched_name':student_name,'verification_status':verfication_status,'already_marked':already_marked},status=status.HTTP_200_OK)
 
 class AttendanceRetrieveView(APIView):
+    parser_classes = [MultiPartParser,FormParser]
     def get(self,request):
         attendance_objs = Attendance.objects.all()
         attendances_serialized = AttendanceRetrieveSerializer(attendance_objs,many=True)
@@ -773,5 +779,13 @@ class AttendanceRetrieveView(APIView):
         attendances_serialized = AttendanceRetrieveSerializer(attendance_objs,many=True)
         return Response(attendances_serialized.data,status=status.HTTP_200_OK)
 
-        
-
+class AttendancePrintView(APIView):
+    parser_classes = [MultiPartParser,FormParser]
+    def post(self,request):
+        # pdf = ujson.dumps(writeAttendanceDataToHtmlandGetPDF(request.data['attendances_to_print']))
+        pdf = writeAttendanceDataToHtmlandGetPDF(request.data['attendances_to_print'])
+        filename = "Attendance_report.pdf"
+        response = Response(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
+        return response
+        # return Response(status=status.HTTP_200_OK)
