@@ -240,7 +240,7 @@ def deleteAStudentsFaceEncodings(student_id,stud_class_name):
     writeFaceEncodingsAndStudentIdsToPickle(student_ids,known_face_encodings,face_data_file_location)
     print(student_ids)
 
-def editStudentFace(current_stud_class_name,updated_stud_class_name,student_id,multiple_face_photo_b64s):
+def editStudentFace(current_stud_class_name,updated_stud_class_name,student_id,multiple_face_photo_b64s=[]):
     no_of_images = len(multiple_face_photo_b64s)
     if(current_stud_class_name == updated_stud_class_name):
         if(no_of_images>0):

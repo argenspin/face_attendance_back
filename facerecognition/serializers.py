@@ -3,7 +3,7 @@ from rest_framework import serializers
 from .models import TeacherUser,Student,StudClass
 from django.contrib.auth import get_user_model
 from django.core.mail import send_mail
-from .models import TeacherUser,StudClass,Subject,Attendance
+from .models import TeacherUser,StudClass,Subject,Attendance,AcademicBatch
 
 User = get_user_model()
 
@@ -132,9 +132,16 @@ class StudClassCreateSerializer(serializers.ModelSerializer):
 
 class StudentSerializer(serializers.ModelSerializer):
     
+    batch_name = serializers.SerializerMethodField(method_name='get_batch_name') #teacher name
+    def get_batch_name(self,studentobj):
+        try:
+            batch_name = studentobj.batch.batch_name
+        except:
+            batch_name = ''
+        return batch_name
     class Meta:
         model = Student
-        fields = ['id','name','dob','stud_class_name','register_no','dob']
+        fields = ['id','name','dob','stud_class_name','register_no','dob','batch','batch_name']
 
 '''class StudentFacePhotoSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField'''
@@ -142,13 +149,13 @@ class StudentSerializer(serializers.ModelSerializer):
 class StudentCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Student
-        fields = ['id','name','stud_class_name','face_photo_b64', 'register_no','dob']
+        fields = ['id','name','stud_class_name','face_photo_b64', 'register_no','dob','batch']
 
 class StudentEditSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=True)
     class Meta:
         model = Student
-        fields = ['id','name','stud_class_name','face_photo_b64','register_no','dob']
+        fields = ['id','name','stud_class_name','face_photo_b64','register_no','dob','batch']
 
 class ClassSubjectsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -174,10 +181,33 @@ class AttendanceRetrieveSerializer(serializers.ModelSerializer):
     def get_student_name(self,attendance_obj):
         student_name = attendance_obj.student.name
         return student_name
+    
+    batch_name = serializers.SerializerMethodField(method_name='get_batch_name') #batch name
+    def get_batch_name(self,attendanceobj):
+        try:
+            batch_name = attendanceobj.student.batch.batch_name
+        except:
+            batch_name = ''
+        return batch_name
+    
+    batch = serializers.SerializerMethodField(method_name='get_batch') #batch name
+    def get_batch(self,attendanceobj):
+        batch = attendanceobj.student.batch.id
+        return batch
+    
+    register_no = serializers.SerializerMethodField(method_name='get_register_no')
+    def get_register_no(self,attendanceobj):
+        register_no = attendanceobj.student.register_no
+        return register_no
     class Meta:
         model = Attendance
         fields = ['id','stud_class_name','student','student_name','date',
-                  'subject1_att','subject2_att','subject3_att','subject4_att','subject5_att'
+                  'subject1_att','subject2_att','subject3_att','subject4_att','subject5_att',
+                  'batch_name','batch','register_no'
                   ]
 
+class AcademicBatchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicBatch
+        fields = ['id','batch_name']
 
