@@ -19,7 +19,7 @@ class AcademicBatch(models.Model):
 class StudClass(models.Model):
     stud_class_name = models.CharField(unique=True,null=False,max_length=30,primary_key=True)
     current_batch = models.ForeignKey(AcademicBatch,on_delete=models.CASCADE,null=True,blank=True,related_name='current_batch')
-    teacher = models.ForeignKey(TeacherUser,on_delete=models.CASCADE,null=True,blank=True,unique=True)
+    teacher = models.ForeignKey(TeacherUser,on_delete=models.CASCADE,null=True,blank=True)
     is_lab = models.BooleanField(default=False)
 
 class Subject(models.Model):
@@ -32,17 +32,17 @@ class Subject(models.Model):
         return self.name
 class Student(models.Model):
     name = models.CharField(null=False,max_length=30)
-    register_no = models.CharField(max_length=15,null=True,blank=True)
-    dob = models.DateField(null=True,default=date.today())
-    stud_class_name = models.ForeignKey(StudClass,on_delete=models.CASCADE,null=True,to_field='stud_class_name')
-    batch = models.ForeignKey(AcademicBatch,on_delete=models.CASCADE,null=True,blank=True,related_name='student_batch')
-    face_photo_b64 = models.TextField(default='',blank=True)
+    register_no = models.CharField(max_length=15,null=True,blank=True,unique=True)
+    dob = models.DateField(null=True,blank=True,default=date.today())
+    stud_class_name = models.ForeignKey(StudClass,on_delete=models.CASCADE,null=False,to_field='stud_class_name')
+    batch = models.ForeignKey(AcademicBatch,on_delete=models.CASCADE,null=False,related_name='student_batch')
+    face_photo_b64 = models.TextField(default='',blank=True,null=True)
 
     def __str__(self):
         return self.name + ' - ' + self.stud_class_name.stud_class_name
 
 class TimeTable(models.Model):
-    stud_class_name = models.ForeignKey(StudClass,on_delete=models.CASCADE,unique=True,to_field='stud_class_name',related_name="timetable_class_name",null=True,blank=True)
+    stud_class_name = models.ForeignKey(StudClass,on_delete=models.CASCADE,unique=True,to_field='stud_class_name',related_name="timetable_class_name")
     monday = ArrayField(models.IntegerField(),size=5,null=True)
     tuesday = ArrayField(models.IntegerField(),size=5,null=True)
     wednesday = ArrayField(models.IntegerField(),size=5,null=True)

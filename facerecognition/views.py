@@ -48,11 +48,11 @@ class TeacherUserCreate(APIView):
                 req = requests.post(back_url+'token/obtain/', data={'username':serializer.data['username'],'password':teacher_password})
                 req_as_dict = ujson.loads(req.text)
                 register_link = front_url + 'register/' + req_as_dict['refresh'] + "/" + serializer.data['username']
-                mail_subject = "email: "+teacher_email + "\nPassword: "+teacher_password+"\n"+register_link
+                mail_body = "email: "+teacher_email + "\nPassword: "+teacher_password+"\n"+register_link
                 json_data = serializer.data
 
                 #create a seperate thread so that response object can be returned while sending the mail .(To remove delay in sending mail)
-                thread = threading.Thread(target =register_completion_mail_send, args=(mail_subject,teacher_email))
+                thread = threading.Thread(target =register_completion_mail_send, args=(mail_body,teacher_email))
                 thread.start()
                 print("hello gyus")
                 #register_completion_mail_send(mail_subject,teacher_email)
@@ -192,7 +192,7 @@ class StudentEditView(APIView):
         multiple_images = ujson.loads(request.data['multiple_images'])
         print(len(multiple_images))
         
-        #print(babadf)
+        # print(request.data)
         serializer = StudentEditSerializer(data=request.data)
         if(serializer.is_valid()):
             student_id = serializer.data['id']
@@ -228,7 +228,8 @@ class StudentEditView(APIView):
                 return Response(status=status.HTTP_200_OK)
             except IndexError:
                 return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        print(serializer.errors)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
     
 class MultipleStudentsUpdateStudClass(APIView):
     parser_classes = [MultiPartParser,FormParser]
@@ -264,7 +265,10 @@ class StudentDeleteView(APIView):
                 student_stud_class_name = student.stud_class_name.stud_class_name
                 filename = 'face_data/'+str(student_stud_class_name) + '.fac'
                 #face_check.deleteStudentFace(filename,student_id)
-                face_check.deleteStudentFace(student_stud_class_name,student_id)
+                # if student doesnt have a face stored, then it means the face encodings are not stored
+                print(student.face_photo_b64)
+                if student.face_photo_b64 != '':
+                    face_check.deleteStudentFace(student_stud_class_name,student_id)
                 student.delete()
                 return Response(status=status.HTTP_200_OK)
             except:
@@ -312,7 +316,7 @@ class StudClassCreateView(APIView):
             request.data['is_lab'] = False
         elif(request.data['is_lab']=='true'):
             request.data['is_lab'] = True
-        studclass_serialized = StudClassSerializer(data=request.data)
+        studclass_serialized = StudClassCreateSerializer(data=request.data)
         if(studclass_serialized.is_valid()):
             print(studclass_serialized)
             try:
@@ -504,6 +508,11 @@ class StudClassManageView(APIView):
         print(request.data)
         stud_class_obj = StudClass.objects.get(stud_class_name=stud_class_name)
 
+        try:
+            stud_class_obj.current_batch = AcademicBatch.objects.get(id=request.data['current_batch'])
+        except:
+            pass
+
         if request.data['is_lab']=='false':
             stud_class_obj.is_lab = False
         elif request.data['is_lab']=='true':
@@ -656,20 +665,23 @@ class AttendanceCurrentSubjectView(APIView):
 
         timetable_obj = TimeTable.objects.get(stud_class_name=stud_class_obj)
 
-        day = int(datetime.now().weekday())
-        hour = int(datetime.now().strftime('%H'))
-        minutes = int(datetime.now().strftime('%M'))
+        current_date = datetime.now()
+        day = int(current_date.weekday())
+        hour = int(current_date.strftime('%H'))
+        minutes = int(current_date.strftime('%M'))
         timetable_subject_index = -1
-        if(hour==9 and minutes>=30 and minutes<=45):
+        if((hour==9 and minutes>=30) or (hour==10 and minutes<30)):
             timetable_subject_index = 0
-        elif(hour==10 and minutes>=30 and minutes<=45):
+        elif((hour==10 and minutes>=30) or (hour==11 and minutes<25)):
             timetable_subject_index = 1
-        elif(hour>=11 and minutes>=0 and minutes<=59):
+        elif((hour==11 and minutes>=35) or (hour==12 and minutes<30)):
             timetable_subject_index = 2
-        elif(hour==13 and minutes>=30 and minutes<=45):
+        elif((hour==13 and minutes>=30) or (hour==14 and minutes<30)):
             timetable_subject_index = 3
-        elif(hour==14 and minutes>=30 and minutes<=45):
+        elif((hour==14 and minutes>=30) or (hour==15 and minutes<30)):
             timetable_subject_index = 4
+
+        print(timetable_subject_index)
         
         
         if(day==0): 
@@ -697,28 +709,42 @@ class AttendanceCurrentSubjectView(APIView):
         if subject_obj.is_lab == True and subject_obj.lab_name != stud_class_obj:
             return Response(current_subject_data,status=status.HTTP_200_OK)
         
-        subject_name = subject_obj.name
+        if subject_obj.name!='-':
+            subject_name = subject_obj.name
+        else:
+            return Response(current_subject_data,status=status.HTTP_200_OK)
+
         current_subject_data = {'id':subject_id,'subject_name':subject_name,'timetable_subject_index':timetable_subject_index}
         return Response(current_subject_data,status=status.HTTP_200_OK)
 
 class AttendanceAutoCreateObjectsOnTeacherLoginView(APIView):
     parser_classes = [MultiPartParser,FormParser]
     def post(self,request):
-        try:
-            studclass_obj = StudClass.objects.get(stud_class_name=request.data['stud_class_name'])
-            if studclass_obj.is_lab:
-                return Response(status=status.HTTP_200_OK)
-        except:
-            return Response(status=status.HTTP_200_OK)
-        student_objs = Student.objects.filter(stud_class_name = studclass_obj)
-        for student in student_objs:
-            current_date = date.today()
+        current_date = datetime.now()
+        day = int(current_date.weekday())
+        hour = int(current_date.strftime('%H'))
+        minutes = int(current_date.strftime('%M'))
+        if (day>=0 and day<=4) and (hour>=9 and (hour<16) ): #auto create only if it is during a working day
+
             try:
-                Attendance.objects.get(student=student,date=current_date,stud_class_name=studclass_obj)
+                studclass_obj = StudClass.objects.get(stud_class_name=request.data['stud_class_name'])
+                if studclass_obj.is_lab:
+                    return Response(status=status.HTTP_200_OK)
             except:
-                new_attendance_obj = Attendance.objects.create(student=student,stud_class_name=studclass_obj,date=current_date)
-                new_attendance_obj.save()
-        return Response(status=status.HTTP_201_CREATED)
+                # there is no class for the subject
+                return Response(status=status.HTTP_200_OK)
+            student_objs = Student.objects.filter(stud_class_name = studclass_obj)
+            for student in student_objs:
+                current_date = date.today()
+                try:
+                    Attendance.objects.get(student=student,date=current_date,stud_class_name=studclass_obj)
+                except:
+                    new_attendance_obj = Attendance.objects.create(student=student,stud_class_name=studclass_obj,date=current_date)
+                    new_attendance_obj.save()
+            return Response(status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
 
 
 class AttendanceMarkingView(APIView):
@@ -735,8 +761,12 @@ class AttendanceMarkingView(APIView):
         timetable_subject_index = int(request.data['timetable_subject_index'])
         stud_class_name = request.data['stud_class_name']  
         stud_class_obj = StudClass.objects.get(stud_class_name=stud_class_name)
-        subject_obj = Subject.objects.get(id=request.data['subject_id'])      
+        subject_obj = Subject.objects.get(id=request.data['subject_id'])   
+
+        if subject_obj.name == '-':
+            return Response(status=status.HTTP_406_NOT_ACCEPTABLE)   
         
+        # if subject is lab, get the class name from subjectobj to mark attendance against class
         if(subject_obj.is_lab == True):
             stud_class_name = subject_obj.stud_class_name.stud_class_name
 
@@ -883,3 +913,23 @@ class AcademicBatchRetrieveView(APIView):
         batch_fields = AcademicBatch.objects.all()
         batches_serialized = AcademicBatchSerializer(batch_fields,many=True)
         return Response(batches_serialized.data,status=status.HTTP_200_OK)
+    
+class AcademicBatchCreateView(APIView):
+    parser_classes = [FormParser,MultiPartParser]
+    def post(self,request):
+        academic_batch_obj = AcademicBatch.objects.create(batch_name = request.data['batch_name'])
+        academic_batch_obj.save()
+        return Response(status=status.HTTP_201_CREATED)
+    
+class AttendanceEditView(APIView):
+    parser_classes = [FormParser,MultiPartParser]
+    def post(self,request):
+        attendance_id = request.data['id']
+        attendance_obj = Attendance.objects.get(id=attendance_id)
+        attendance_obj.subject1_att = True if request.data['subject1_att']=='true' else False
+        attendance_obj.subject2_att = True if request.data['subject2_att']=='true' else False
+        attendance_obj.subject3_att = True if request.data['subject3_att']=='true' else False
+        attendance_obj.subject4_att = True if request.data['subject4_att']=='true' else False
+        attendance_obj.subject5_att = True if request.data['subject5_att']=='true' else False
+        attendance_obj.save()
+        return Response(status=status.HTTP_202_ACCEPTED)

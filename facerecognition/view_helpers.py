@@ -7,6 +7,8 @@ from concurrent.futures import ProcessPoolExecutor
 import time
 import ujson
 import pdfkit
+import yagmail
+
 
 #function to identify type of user from jwt token
 def identifyUserType(request):
@@ -32,7 +34,16 @@ def identifyTeacherUserId(request):
     token_decoded = jwt.decode(access_token,'secret',algorithms=['HS256'],options={'verify_signature': False,})
     return token_decoded['user_id']
 
+# def register_completion_mail_send(mail_body,teacher_email):
+#     yag = yagmail.SMTP('argenspin@gmail.com','vkkuwhgswbhfvsyf')
+
+#     yag.send(
+#         subject='Teacher Login Details',
+#         contents=mail_body,
+#         to=teacher_email,
+#     )
 def register_completion_mail_send(mail_subject,teacher_email):
+
     send_mail(
         subject='Teacher Login Details',
         message=mail_subject,

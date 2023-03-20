@@ -93,6 +93,7 @@ class TeacherDeleteSerializer(serializers.Serializer):
 '''
 #Serializer to also include teacher name in retrieving stud_classes
 class StudClassForClassesSerializer(serializers.ModelSerializer):
+    batch_name = serializers.SerializerMethodField(method_name='get_batch_name') #batch name
     teacher_name = serializers.SerializerMethodField(method_name='get_teacher_name') #teacher name
     def get_teacher_name(self,studclassobj):
         try:
@@ -101,9 +102,16 @@ class StudClassForClassesSerializer(serializers.ModelSerializer):
         except:
             teacher_name = ''
         return teacher_name
+    
+    def get_batch_name(self,studclassobj):
+        try:
+            batch_name = studclassobj.current_batch.batch_name
+        except:
+            batch_name = ''
+        return batch_name
     class Meta:
         model = StudClass
-        fields = ['stud_class_name','teacher','teacher_name','is_lab']
+        fields = ['stud_class_name','teacher','teacher_name','is_lab','current_batch','batch_name']
 
 class StudClassRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
@@ -120,15 +128,22 @@ class LabStudClassRetrieveSerializer(serializers.ModelSerializer):
 #         fields = ['stud_class_name']
 
 class StudClassSerializer(serializers.ModelSerializer):
+    batch_name = serializers.SerializerMethodField(method_name='get_batch_name') #batch name
+    def get_batch_name(self,studclassobj):
+        try:
+            batch_name = studclassobj.current_batch.batch_name
+        except:
+            batch_name = ''
+        return batch_name
 
     class Meta:
         model = StudClass
-        fields = ['stud_class_name','teacher','is_lab']
+        fields = ['stud_class_name','teacher','is_lab','current_batch','batch_name']
 
 class StudClassCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudClass
-        fields = ['stud_class_name','teacher','is_lab']
+        fields = ['stud_class_name','is_lab','current_batch']
 
 class StudentSerializer(serializers.ModelSerializer):
     
@@ -153,6 +168,7 @@ class StudentCreateSerializer(serializers.ModelSerializer):
 
 class StudentEditSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=True)
+    register_no = serializers.CharField()
     class Meta:
         model = Student
         fields = ['id','name','stud_class_name','face_photo_b64','register_no','dob','batch']
@@ -199,6 +215,7 @@ class AttendanceRetrieveSerializer(serializers.ModelSerializer):
     def get_register_no(self,attendanceobj):
         register_no = attendanceobj.student.register_no
         return register_no
+    
     class Meta:
         model = Attendance
         fields = ['id','stud_class_name','student','student_name','date',

@@ -2,7 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework_simplejwt.views import TokenBlacklistView
 
-from .views import TeacherUserCreate,TeacherRetrieveView,ObtainTokenPairWithColorView,TeacherUserCompleteRegistration,TeacherDeleteView,StudentRetrieveView,StudentRetrieveView,RetrieveUserTypeAndStudClassName,RetrieveTeacherUserName,StudClassRetrieve,StudentCreateView,StudentEditView,TeacherEditView,StudentDeleteView,DetectFaceView,CheckImageForFaceView,StudClassOperationsForClassesView,StudClassCreateView,StudClassRetrieveTeachersView,StudClassSubjectsRetrieveView,StudClassSubjectsCreateView,StudClassSubjectsEditView,TimeTableRetrieveView,StudClassManageView,TimeTableRetrieveSubjectNames,LabStudClassRetrieveView,AttendanceMarkingView,AttendanceCurrentSubjectView,AttendanceRetrieveView,AttendancePrintView,AttendancePercentageRetrieve,AttendanceAutoCreateObjectsOnTeacherLoginView,MultipleStudentsUpdateStudClass,AcademicBatchRetrieveView
+from .views import TeacherUserCreate,TeacherRetrieveView,ObtainTokenPairWithColorView,TeacherUserCompleteRegistration,TeacherDeleteView,StudentRetrieveView,StudentRetrieveView,RetrieveUserTypeAndStudClassName,RetrieveTeacherUserName,StudClassRetrieve,StudentCreateView,StudentEditView,TeacherEditView,StudentDeleteView,DetectFaceView,CheckImageForFaceView,StudClassOperationsForClassesView,StudClassCreateView,StudClassRetrieveTeachersView,StudClassSubjectsRetrieveView,StudClassSubjectsCreateView,StudClassSubjectsEditView,TimeTableRetrieveView,StudClassManageView,TimeTableRetrieveSubjectNames,LabStudClassRetrieveView,AttendanceMarkingView,AttendanceCurrentSubjectView,AttendanceRetrieveView,AttendancePrintView,AttendancePercentageRetrieve,AttendanceAutoCreateObjectsOnTeacherLoginView,MultipleStudentsUpdateStudClass,AcademicBatchRetrieveView,AttendanceEditView,AcademicBatchCreateView
 urlpatterns = [
     path('teacher/create/', TeacherUserCreate.as_view(), name="create_teacher"),
 
@@ -17,7 +17,6 @@ urlpatterns = [
     #path('hello/', HelloWorldView.as_view(), name='hello_world'),
 
     path('teacher/edit/', TeacherEditView.as_view(),name="edit_teacher"),
-
 
     path('teacher/retrieve/',TeacherRetrieveView.as_view(), name='teacher_retrieve',),
 
@@ -80,6 +79,10 @@ urlpatterns = [
     path('attendance/onteacherlogin/create/',AttendanceAutoCreateObjectsOnTeacherLoginView.as_view(),name='attendance_autocreate'),
 
     path('academicbatch/retrieve/',AcademicBatchRetrieveView.as_view(),name='retrieve_batches'),
+
+    path('academicbatch/create/',AcademicBatchCreateView.as_view(),name='create_batch'),
+
+    path('attendance/edit/',AttendanceEditView.as_view(),name='edit_attendance'),
     #'path('teacher/edit/',TeacherEditView.as_view(), name="teacher_edit"),
 ]
  

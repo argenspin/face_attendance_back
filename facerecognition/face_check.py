@@ -210,7 +210,8 @@ def bak_loadModelAndTrainUsingStudentImages(face_data_file_location,model_file_l
 
 
 def addNewStudentFace(stud_class_name,student_id,multiple_face_photo_b64s):
-    print(len(multiple_face_photo_b64s))
+    if len(multiple_face_photo_b64s)==0:
+        return
     writeB64toImagesAsStudentID(multiple_face_photo_b64s,student_id)
     face_data_file_location = getFaceDataFileLocation(stud_class_name)
     model_file_location = getModelFileLocation(stud_class_name)
