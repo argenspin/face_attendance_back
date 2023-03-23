@@ -109,7 +109,6 @@ def loadModelAndTrainUsingStudentImages(face_data_file_location,model_file_locat
             for student_image in student_images:
                 results.append(executor.submit(getCurrentEncodingsAndIds,student_id,student_image,student_images_location))
         results = [r.result() for r in results]
-        print(results)
         # current_student_ids = [result[1] for result in results]
         # current_face_encodings = [result[0] for result in results]
         current_student_ids = []
@@ -150,62 +149,62 @@ def loadModelAndTrainUsingStudentImages(face_data_file_location,model_file_locat
     writeFaceEncodingsAndStudentIdsToPickle(student_ids,known_face_encodings, face_data_file_location)
 
 
-def bak_loadModelAndTrainUsingStudentImages(face_data_file_location,model_file_location,student_id, operation='create',no_of_images=0):
+# def bak_loadModelAndTrainUsingStudentImages(face_data_file_location,model_file_location,student_id, operation='create',no_of_images=0):
     
-    #There should be more than one classname to train the model
-    more_than_one_class = True
-    try:
-        known_face_encodings,student_ids = loadFaceData(face_data_file_location)
-    except:
-        known_face_encodings = []
-        student_ids = []
-    print("lengths before training:",len(known_face_encodings),len(student_ids))
-    student_images_location = temp_face_img_dir + str(student_id) + '/'
-    student_images = os.listdir(student_images_location)
-    if no_of_images>0:
-        for student_image in student_images:
-            #current_filename = str(student_id) + '_face_' + str(i) + '.jpg'
-            #current_file_location = temp_face_img_dir + current_filename
-            print(student_image)
-            try:
-                img_location = student_images_location + student_image
-                #img_file = open(student_image,'rb')
-                face_photo = face_recognition.load_image_file(img_location)
-                face_photo_encodings = face_recognition.face_encodings(face_photo)[0]
-                student_ids.append(student_id)
-                known_face_encodings.append(face_photo_encodings)
-            except:
-                print("error eccured")
-            try:
-                pass
-                #os.remove(current_file_location)
-            except:
-                print("couldnt delete")
-                pass
-    print("for loop completed")
-    print(model_file_location)
-    if(len(known_face_encodings) <= 32  or len(student_ids) <=32 ):
-        more_than_one_class = False
+#     #There should be more than one classname to train the model
+#     more_than_one_class = True
+#     try:
+#         known_face_encodings,student_ids = loadFaceData(face_data_file_location)
+#     except:
+#         known_face_encodings = []
+#         student_ids = []
+#     print("lengths before training:",len(known_face_encodings),len(student_ids))
+#     student_images_location = temp_face_img_dir + str(student_id) + '/'
+#     student_images = os.listdir(student_images_location)
+#     if no_of_images>0:
+#         for student_image in student_images:
+#             #current_filename = str(student_id) + '_face_' + str(i) + '.jpg'
+#             #current_file_location = temp_face_img_dir + current_filename
+#             print(student_image)
+#             try:
+#                 img_location = student_images_location + student_image
+#                 #img_file = open(student_image,'rb')
+#                 face_photo = face_recognition.load_image_file(img_location)
+#                 face_photo_encodings = face_recognition.face_encodings(face_photo)[0]
+#                 student_ids.append(student_id)
+#                 known_face_encodings.append(face_photo_encodings)
+#             except:
+#                 print("error eccured")
+#             try:
+#                 pass
+#                 #os.remove(current_file_location)
+#             except:
+#                 print("couldnt delete")
+#                 pass
+#     print("for loop completed")
+#     print(model_file_location)
+#     if(len(known_face_encodings) <= 32  or len(student_ids) <=32 ):
+#         more_than_one_class = False
 
-    if more_than_one_class:
-        model_file = open(model_file_location,'wb')
-        model = svm.SVC(probability=True)
-        print(student_ids)
-        print("fitting started")
-        model.fit(known_face_encodings,student_ids)
-        model_file.close()
-        print("model fitted completely")
-        print("model classes:",model.classes_)
-        model_file = open(model_file_location,'wb')
-        pickle.dump(model,model_file)
-    else:
-        try:
-            os.remove(model_file_location)
-        except:
-            print("couldnt delete model")
+#     if more_than_one_class:
+#         model_file = open(model_file_location,'wb')
+#         model = svm.SVC(probability=True)
+#         print(student_ids)
+#         print("fitting started")
+#         model.fit(known_face_encodings,student_ids)
+#         model_file.close()
+#         print("model fitted completely")
+#         print("model classes:",model.classes_)
+#         model_file = open(model_file_location,'wb')
+#         pickle.dump(model,model_file)
+#     else:
+#         try:
+#             os.remove(model_file_location)
+#         except:
+#             print("couldnt delete model")
     
-    print(student_ids)
-    writeFaceEncodingsAndStudentIdsToPickle(student_ids,known_face_encodings, face_data_file_location)
+#     print(student_ids)
+#     writeFaceEncodingsAndStudentIdsToPickle(student_ids,known_face_encodings, face_data_file_location)
   
 
 
@@ -361,41 +360,54 @@ def findCurrentMatchedId(index,imageB64,model):
     temp_img_location = writeB64ToImageForIdentifying(imageB64,index)
     try:
         image = face_recognition.load_image_file(temp_img_location)
-        face_encodings = face_recognition.face_encodings(image)[0]
+        try:
+            face_encodings = face_recognition.face_encodings(image)[0]
+        except:
+            print("Couldnt detect any faces")
+            return -1
         try:
             os.remove(temp_img_location)
         except:
             print("couldnt delete dtect image")
         probabilities = list(model.predict_proba([face_encodings]))
         probabilities = list(probabilities[0])
-        probs_copy = probabilities.copy()
-        most_probable = max(probabilities)
+        probs_copy = sorted(probabilities,reverse=True).copy()
+        
+        most_probable = probs_copy[0]
+        second_most_probable = probs_copy[1]
+        third_most_probable = probs_copy[2]
+
+        second_prob_index = probabilities.index(second_most_probable)
         predicted_id = model.predict([face_encodings])[0]
-        probs_copy.pop(probs_copy.index(max(probs_copy)))
-        second_most_probable = probs_copy[probs_copy.index(max(probs_copy))]
-        probs_copy.pop(probs_copy.index(max(probs_copy))) 
+        second_predicted_id = model.classes_[second_prob_index]
+        # probs_copy.pop(probs_copy.index(max(probs_copy)))
+        # second_most_probable = probs_copy[probs_copy.index(max(probs_copy))]
+        # probs_copy.pop(probs_copy.index(max(probs_copy))) 
+        # second_prob_index = p
         #There should be atleast three classes in the model. This try block is if in case there is less than three classes
-        try:      
-            third_most_probable =  probs_copy[probs_copy.index(max(probs_copy))]
+        # try:      
+        #     third_most_probable =  probs_copy[probs_copy.index(max(probs_copy))]
+        # except:
+        #     third_most_probable = second_most_probable
+        print("Most probable percentage: ",most_probable*100," - ",predicted_id)
+        print("Second probable percentage: ",second_most_probable*100, ' - ',second_predicted_id)
+        print("THird probable percentage: ",third_most_probable*100)
+
+        # check if predicted id is a string, if it is string, then it predicted an actor
+        try:
+            test_var = int(predicted_id)
         except:
-            third_most_probable = second_most_probable
-        print(probabilities)
-        print("Most probable percentage: ",most_probable*100,"%")
-        if(most_probable>0.85):
+            return -1
+        if most_probable>0.05 and (int(most_probable*100) > int(second_most_probable*100)):
             return predicted_id
-        elif most_probable>0.5 and (second_most_probable+third_most_probable)<=(most_probable/2):
-            return predicted_id
-        elif most_probable<0.5:
-            if (second_most_probable+third_most_probable)<=(most_probable/2):
-                return predicted_id
-            # if most_probable>0.45 and second_most_probable<(most_probable/2):
-            #     return predicted_id
-            # elif (second_most_probable+third_most_probable) <= (most_probable/2):
-            #     return predicted_id
-            else:
-                return -1
         else:
             return -1
+        # if(most_probable>0.22):
+        #     return predicted_id
+        # elif(most_probable>0.10 and second_most_probable<=(most_probable/2)):
+        #     return predicted_id
+        # else:
+        #     return -1
     except: 
         return -1
 

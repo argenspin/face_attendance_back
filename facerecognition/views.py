@@ -15,9 +15,10 @@ import ujson
 from rest_framework_simplejwt.tokens import RefreshToken
 import jwt
 import threading
-from . view_helpers import identifyTeacherStudClass,identifyTeacherUserId,identifyUserType,register_completion_mail_send,getImagesToDetectFromRequest,writeAttendanceDataToHtmlandGetPDF
+from . view_helpers import identifyTeacherStudClass,identifyTeacherUserId,identifyUserType,register_completion_mail_send,getImagesToDetectFromRequest,writeAttendanceDataToHtmlandGetPDF,copyDefaultTrainedModel
 from . import face_check
 from datetime import date,datetime
+
 
 back_url = "http://localhost:8000/api/"
 front_url = "http://localhost:3000/"
@@ -341,6 +342,7 @@ class StudClassCreateView(APIView):
                 timetable_obj.thursday = [empty_subject_id for i in range(5)]
                 timetable_obj.friday = [empty_subject_id for i in range(5)]
             timetable_obj.save()
+            copyDefaultTrainedModel(request.data['stud_class_name'])
 
             return Response(studclass_serialized.data,status=status.HTTP_201_CREATED)
         print(studclass_serialized)
@@ -670,7 +672,7 @@ class AttendanceCurrentSubjectView(APIView):
         hour = int(current_date.strftime('%H'))
         minutes = int(current_date.strftime('%M'))
         timetable_subject_index = -1
-        if((hour==9 and minutes>=30) or (hour==10 and minutes<30)):
+        if((hour==2 and minutes>=0) or (hour==10 and minutes<30)):
             timetable_subject_index = 0
         elif((hour==10 and minutes>=30) or (hour==11 and minutes<25)):
             timetable_subject_index = 1
@@ -678,7 +680,7 @@ class AttendanceCurrentSubjectView(APIView):
             timetable_subject_index = 2
         elif((hour==13 and minutes>=30) or (hour==14 and minutes<30)):
             timetable_subject_index = 3
-        elif((hour==14 and minutes>=30) or (hour==15 and minutes<30)):
+        elif((hour==18 and minutes>=30) or (hour==19 and minutes<30)):
             timetable_subject_index = 4
 
         print(timetable_subject_index)

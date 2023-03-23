@@ -39,7 +39,7 @@ class Student(models.Model):
     face_photo_b64 = models.TextField(default='',blank=True,null=True)
 
     def __str__(self):
-        return self.name + ' - ' + self.stud_class_name.stud_class_name
+        return str(self.id) + ' - ' + self.name + ' - ' + self.stud_class_name.stud_class_name
 
 class TimeTable(models.Model):
     stud_class_name = models.ForeignKey(StudClass,on_delete=models.CASCADE,unique=True,to_field='stud_class_name',related_name="timetable_class_name")

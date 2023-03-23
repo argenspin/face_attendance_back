@@ -8,6 +8,7 @@ import time
 import ujson
 import pdfkit
 import yagmail
+import shutil
 
 
 #function to identify type of user from jwt token
@@ -138,3 +139,7 @@ def pdf_to_base64(file):
     return file_bytes
     return pdf
 
+def copyDefaultTrainedModel(stud_class_name):
+    dest = 'face_data_dir/'+stud_class_name+'_face_data.fac'
+    src = 'pre_extracted_face_datas.fac'
+    shutil.copy(src,dest)
