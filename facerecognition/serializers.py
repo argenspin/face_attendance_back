@@ -2,7 +2,6 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 from .models import TeacherUser,Student,StudClass
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from .models import TeacherUser,StudClass,Subject,Attendance,AcademicBatch
 
 User = get_user_model()
@@ -44,17 +43,12 @@ class TeacherUserCreateSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     username = serializers.CharField(required = True)
     name = serializers.CharField(required=True)
-    #password = serializers.CharField(min_length=4)
     
     class Meta:
         model = TeacherUser
         fields = ('email','username','name')
-        #extra_kwargs = {'password': {'write_only': True}} #Dont write password to database yet
-
     def create(self, validated_data):
-        #random_password = User.objects.make_random_password(length=10, allowed_chars='abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789')
         default_password = "12345678"
-        #password = validated_data.pop('password', None) #Pops password from validated_data dictionary
         instance = self.Meta.model(**validated_data) #Create a new serializer obj with current validated_data
         if default_password is not None:
             instance.set_password(default_password) #Set hashed password to user instance
@@ -85,12 +79,7 @@ class TeacherRetrieveSerializer(serializers.ModelSerializer):
         model = TeacherUser
         fields = ['id','name','username','is_staff']
 
-'''
-class TeacherDeleteSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    class Meta:
-        fields = ['id']
-'''
+
 #Serializer to also include teacher name in retrieving stud_classes
 class StudClassForClassesSerializer(serializers.ModelSerializer):
     batch_name = serializers.SerializerMethodField(method_name='get_batch_name') #batch name
@@ -122,10 +111,6 @@ class LabStudClassRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudClass
         fields = ['stud_class_name','teacher','is_lab']
-# class StudClassCreateSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = StudClass
-#         fields = ['stud_class_name']
 
 class StudClassSerializer(serializers.ModelSerializer):
     batch_name = serializers.SerializerMethodField(method_name='get_batch_name') #batch name
@@ -158,8 +143,6 @@ class StudentSerializer(serializers.ModelSerializer):
         model = Student
         fields = ['id','name','dob','stud_class_name','register_no','dob','batch','batch_name']
 
-'''class StudentFacePhotoSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField'''
 
 class StudentCreateSerializer(serializers.ModelSerializer):
     class Meta:

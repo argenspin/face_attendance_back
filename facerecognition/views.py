@@ -1,27 +1,26 @@
-from django.shortcuts import render
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import permissions,status
 from django.core import serializers
-from .serializers import MyTokenObtainPairSerializer,TeacherUserCreateSerializer,StudClassSerializer,StudentSerializer,TeacherCompleteRegistrationSerializer,TeacherRetrieveSerializer,StudentCreateSerializer,StudentEditSerializer,TeacherEditSerializer,StudClassForClassesSerializer,ClassSubjectsSerializer,ClassSubjectsCreateSerializer,LabStudClassRetrieveSerializer,StudClassCreateSerializer,AttendanceRetrieveSerializer,AcademicBatchSerializer
+from . import serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.http import QueryDict
 from rest_framework.parsers import MultiPartParser, FormParser
 from .models import TeacherUser,Student,StudClass,Subject,TimeTable,Attendance,AcademicBatch
-from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 import requests
 import ujson
-from rest_framework_simplejwt.tokens import RefreshToken
-import jwt
 import threading
-from . view_helpers import identifyTeacherStudClass,identifyTeacherUserId,identifyUserType,register_completion_mail_send,getImagesToDetectFromRequest,writeAttendanceDataToHtmlandGetPDF,copyDefaultTrainedModel
+from . import view_helpers
 from . import face_check
 from datetime import date,datetime
 
 
+ 
+local_ip = view_helpers.get_local_ip()
+
+
 back_url = "http://localhost:8000/api/"
-front_url = "http://localhost:3000/"
+front_url = "http://"+str(local_ip)+":3000/"
 
 User = get_user_model()
 
@@ -29,13 +28,13 @@ User = get_user_model()
 # Create your views here.
 class ObtainTokenPairWithColorView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
-    serializer_class = MyTokenObtainPairSerializer
+    serializer_class = serializers.MyTokenObtainPairSerializer
 
     
 class TeacherUserCreate(APIView):
     
     def post(self,request, format='json'):
-        serializer = TeacherUserCreateSerializer(data = request.data)
+        serializer = serializers.TeacherUserCreateSerializer(data = request.data)
         if serializer.is_valid():
             user = serializer.save()
             if user:
@@ -45,20 +44,15 @@ class TeacherUserCreate(APIView):
                 teacher_obj = TeacherUser.objects.get(username=serializer.data['username'])
                 teacher_obj.set_password(teacher_password)
                 teacher_obj.save()
-                #request.data = {'username':serializer.data['username'],'password': serializer.data['username'] }
                 req = requests.post(back_url+'token/obtain/', data={'username':serializer.data['username'],'password':teacher_password})
                 req_as_dict = ujson.loads(req.text)
                 register_link = front_url + 'register/' + req_as_dict['refresh'] + "/" + serializer.data['username']
-                mail_body = "email: "+teacher_email + "\nPassword: "+teacher_password+"\n"+register_link
+                mail_body = "email: "+teacher_email+ "\n"+register_link
                 json_data = serializer.data
 
                 #create a seperate thread so that response object can be returned while sending the mail .(To remove delay in sending mail)
-                thread = threading.Thread(target =register_completion_mail_send, args=(mail_body,teacher_email))
+                thread = threading.Thread(target =view_helpers.register_completion_mail_send, args=(mail_body,teacher_email))
                 thread.start()
-                print("hello gyus")
-                #register_completion_mail_send(mail_subject,teacher_email)
-
-
                 return Response(json_data,status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -67,7 +61,7 @@ class TeacherUserCompleteRegistration(APIView):
     parser_classes = [MultiPartParser,FormParser]
     def post(self, request,*args, **kwargs):
         print(request.data)
-        serializer = TeacherCompleteRegistrationSerializer(data=request.data)
+        serializer = serializers.TeacherCompleteRegistrationSerializer(data=request.data)
         if serializer.is_valid():
             teacher = TeacherUser.objects.get(username = serializer.data['username'])
             if(teacher.register_complete == False):
@@ -85,7 +79,7 @@ class TeacherUserCompleteRegistration(APIView):
 class TeacherEditView(APIView):
     parser_classes = [MultiPartParser,FormParser]
     def post(self,request):
-        serializer = TeacherEditSerializer(data=request.data)
+        serializer = serializers.TeacherEditSerializer(data=request.data)
         print(request.data)
         if(serializer.is_valid()):
             teacher = TeacherUser.objects.get(username = serializer.data['username'])
@@ -95,17 +89,9 @@ class TeacherEditView(APIView):
             return Response(serializer.data,status=status.HTTP_202_ACCEPTED)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
-
-'''class BlackListRefreshView(APIView):
-    def post(self,request):
-        print("hello")
-        token = RefreshToken(request.data.get('refresh'))
-        token.blacklist()
-        return Response("blacklisted successfully")'''
-
 class RetrieveTeacherUserName(APIView):
     def get(self, request, *args, **kwargs):
-        user_id = identifyTeacherUserId(request)
+        user_id = view_helpers.identifyTeacherUserId(request)
         teacher_obj = TeacherUser.objects.get(id=user_id)
         print(teacher_obj.username)
         data = {'loggedUser': teacher_obj.username}
@@ -113,8 +99,8 @@ class RetrieveTeacherUserName(APIView):
 
 class RetrieveUserTypeAndStudClassName(APIView):
     def get(self, request, *args, **kwargs):
-        user_type = identifyUserType(request)
-        stud_class_name = identifyTeacherStudClass(request)
+        user_type = view_helpers.identifyUserType(request)
+        stud_class_name = view_helpers.identifyTeacherStudClass(request)
         data = {'user_type':user_type, 'stud_class_name':stud_class_name}
         return Response(data,status=status.HTTP_200_OK)
 
@@ -135,9 +121,9 @@ class StudentRetrieveView(APIView):
     
     #Retrieve all students
     def get(self, request, *args, **kwargs):
-        user_type = identifyUserType(request)
+        user_type = view_helpers.identifyUserType(request)
         if(user_type=='teacher'):
-            stud_class_name = identifyTeacherStudClass(request)
+            stud_class_name = view_helpers.identifyTeacherStudClass(request)
             if(stud_class_name=='Not Assigned'):
                 return Response(status=status.HTTP_401_UNAUTHORIZED)
             else:
@@ -146,7 +132,7 @@ class StudentRetrieveView(APIView):
             studentfields = Student.objects.all()
         else:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-        student_serialized = StudentSerializer(studentfields,many=True)
+        student_serialized = serializers.StudentSerializer(studentfields,many=True)
         return Response(student_serialized.data,status=status.HTTP_200_OK)
 
     #To get student' face photo using id
@@ -164,20 +150,15 @@ class StudentCreateView(APIView):
     parser_classes = [MultiPartParser,FormParser]
 
     def post(self,request):
-        #print(request.data['multiple_images'])
         multiple_images = ujson.loads(request.data['multiple_images'])
         print(request.data)
-        serializer = StudentCreateSerializer(data=request.data)
+        serializer = serializers.StudentCreateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             #id is created only after saving the student.
             student_id = serializer.data['id']
             student_stud_class = serializer.data['stud_class_name']
-            filename = 'face_data/'+str(student_stud_class) + '.fac'
-            face_photo_b64 = serializer.data['face_photo_b64']
-            
-            #face_check.addNewStudentFace(student_stud_class,student_id,multiple_images)
-            #return Response(serializer.data,status=status.HTTP_200_OK)
+
             try:
                 face_check.addNewStudentFace(student_stud_class,student_id,multiple_images)
                 return Response(serializer.data,status=status.HTTP_200_OK)
@@ -192,9 +173,7 @@ class StudentEditView(APIView):
     def post(self,request):
         multiple_images = ujson.loads(request.data['multiple_images'])
         print(len(multiple_images))
-        
-        # print(request.data)
-        serializer = StudentEditSerializer(data=request.data)
+        serializer = serializers.StudentEditSerializer(data=request.data)
         if(serializer.is_valid()):
             student_id = serializer.data['id']
             student_name = serializer.data['name']
@@ -224,7 +203,6 @@ class StudentEditView(APIView):
             student.face_photo_b64 = face_photo_b64
             try:
                 face_check.editStudentFace(current_stud_class_name,updated_stud_class_name,student_id,multiple_images)
-                #face_check.editStudentFace(current_filename,updated_filename,student_id,face_photo_b64)
                 student.save()
                 return Response(status=status.HTTP_200_OK)
             except IndexError:
@@ -243,6 +221,7 @@ class MultipleStudentsUpdateStudClass(APIView):
             #retrieve the stud_class_name of student using foreign key reference
             current_stud_class_name = student.stud_class_name.stud_class_name
             #Get new stud_class object updating the student
+            print(updated_stud_class_name)
             new_stud_class_obj = StudClass.objects.get(stud_class_name=updated_stud_class_name)
             #Update student values
             #set new student stud_class
@@ -252,7 +231,6 @@ class MultipleStudentsUpdateStudClass(APIView):
                 student.save()
             except IndexError:
                 print("Error on changing class or face encodings ")
-            # return Response(status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_200_OK)
 
 
@@ -265,7 +243,6 @@ class StudentDeleteView(APIView):
             try:
                 student_stud_class_name = student.stud_class_name.stud_class_name
                 filename = 'face_data/'+str(student_stud_class_name) + '.fac'
-                #face_check.deleteStudentFace(filename,student_id)
                 # if student doesnt have a face stored, then it means the face encodings are not stored
                 print(student.face_photo_b64)
                 if student.face_photo_b64 != '':
@@ -284,29 +261,26 @@ class StudClassOperationsForClassesView(APIView):
 # retrieve studclasses that are not lab
     def get(self,request):
         studclassFields = StudClass.objects.filter(is_lab=False)
-        studclass_serialized = StudClassForClassesSerializer(studclassFields,many=True)
+        studclass_serialized = serializers.StudClassForClassesSerializer(studclassFields,many=True)
         print(studclass_serialized.data)
         return Response(studclass_serialized.data)
 
 
 
-#View to retrieve studclasses for everywhere except 'Classes' section
+#View to retrieve studclasses
 class StudClassRetrieve(APIView):
     parser_classes = [MultiPartParser,FormParser]
 
     def get(self, request, *args, **kwargs):
         studclassFields = StudClass.objects.all()
-        studclass_serialized = StudClassForClassesSerializer(studclassFields,many=True)
+        studclass_serialized = serializers.StudClassForClassesSerializer(studclassFields,many=True)
         return Response(studclass_serialized.data)
     
     def post(self, request, *args, **kwargs):
-        studclass_serialized = StudClassSerializer(data=request.data)
+        studclass_serialized = serializers.StudClassSerializer(data=request.data)
         if(studclass_serialized.is_valid()):
-            print(studclass_serialized)
             studclass_serialized.save()
             return Response(studclass_serialized.data,status=status.HTTP_201_CREATED)
-        print(studclass_serialized)
-
         return Response(studclass_serialized.errors,status=status.HTTP_400_BAD_REQUEST)
 
 class StudClassCreateView(APIView):
@@ -317,7 +291,7 @@ class StudClassCreateView(APIView):
             request.data['is_lab'] = False
         elif(request.data['is_lab']=='true'):
             request.data['is_lab'] = True
-        studclass_serialized = StudClassCreateSerializer(data=request.data)
+        studclass_serialized = serializers.StudClassCreateSerializer(data=request.data)
         if(studclass_serialized.is_valid()):
             print(studclass_serialized)
             try:
@@ -332,7 +306,6 @@ class StudClassCreateView(APIView):
                 studclass_obj.is_lab = True
             studclass_obj.save()
 
-
             timetable_obj = TimeTable.objects.create(stud_class_name = studclass_obj)
             empty_subject_id = empty_subject_obj.pk
             for i in range(5):
@@ -342,7 +315,7 @@ class StudClassCreateView(APIView):
                 timetable_obj.thursday = [empty_subject_id for i in range(5)]
                 timetable_obj.friday = [empty_subject_id for i in range(5)]
             timetable_obj.save()
-            copyDefaultTrainedModel(request.data['stud_class_name'])
+            view_helpers.copyDefaultTrainedModel(request.data['stud_class_name'])
 
             return Response(studclass_serialized.data,status=status.HTTP_201_CREATED)
         print(studclass_serialized)
@@ -355,7 +328,7 @@ class TeacherRetrieveView(APIView):
     def get(self, request, *args, **kwargs):
         teacherFields = TeacherUser.objects.all()
         studClasses = StudClass.objects.all()
-        teacher_serialized = TeacherRetrieveSerializer(teacherFields,many=True)
+        teacher_serialized = serializers.TeacherRetrieveSerializer(teacherFields,many=True)
         #Make a copy of teacher_serialized data
         all_teachers = teacher_serialized.data[:]
         for teacher in all_teachers:
@@ -371,10 +344,6 @@ class TeacherRetrieveView(APIView):
                         break
                 except:
                     continue
-        
-
-        #teacher_objs = TeacherUser.objects.filter
-        #stud_class_obj = StudClass.objects.get(teacher = teacher_serialized['id'])
         return Response(all_teachers,status=status.HTTP_200_OK)
 
 #view to retrieve all teachers without any classes assigned for managing studclass
@@ -384,7 +353,7 @@ class StudClassRetrieveTeachersView(APIView):
         #retrieve all teachers except administrators
         teacherFields = TeacherUser.objects.filter(is_staff=False)
         studClasses = StudClass.objects.all()
-        teacher_serialized = TeacherRetrieveSerializer(teacherFields,many=True)
+        teacher_serialized = serializers.TeacherRetrieveSerializer(teacherFields,many=True)
         #Store ids of teacher with classes assigned
         teacher_ids_with_class = []
         #to store ids of teachers without any classes assigned
@@ -400,16 +369,13 @@ class StudClassRetrieveTeachersView(APIView):
                 teacher_name = current_teacher_obj.name
                 current_teacher_data = {'teacher':teacher_id,'teacher_name':teacher_name}
                 teachers_datas.append(current_teacher_data)
-
-        print(teacher_ids_with_class)
-        print(teachers_datas)
         return Response(teachers_datas,status=status.HTTP_200_OK)
 
     #view to retrive studclasses that are labs 
 class LabStudClassRetrieveView(APIView):
     def get(self,request):
         lab_objs = StudClass.objects.filter(is_lab = True)
-        labs_serialized = LabStudClassRetrieveSerializer(lab_objs,many=True)
+        labs_serialized = serializers.LabStudClassRetrieveSerializer(lab_objs,many=True)
         print(labs_serialized.data)
         return Response(labs_serialized.data,status=status.HTTP_200_OK)
         
@@ -420,18 +386,18 @@ class StudClassSubjectsRetrieveView(APIView):
     def post(self,request):
         stud_class_name = request.data['stud_class_name']
         subjects_of_studclass = Subject.objects.filter(stud_class_name=stud_class_name)
-        subjects_serialized = ClassSubjectsSerializer(subjects_of_studclass, many=True)
+        subjects_serialized = serializers.ClassSubjectsSerializer(subjects_of_studclass, many=True)
         return Response(subjects_serialized.data, status=status.HTTP_200_OK)
     
     def get(self,request):
         subjects = Subject.objects.all()
-        subjects_serialized = ClassSubjectsSerializer(subjects, many=True)
+        subjects_serialized = serializers.ClassSubjectsSerializer(subjects, many=True)
         return Response(subjects_serialized.data,status=status.HTTP_200_OK)
     
 class StudClassSubjectsCreateView(APIView):
     parser_classes = [MultiPartParser,FormParser]
     def post(self,request):
-        subject_serialized = ClassSubjectsCreateSerializer(data=request.data)
+        subject_serialized = serializers.ClassSubjectsCreateSerializer(data=request.data)
         print(request.data)
         if subject_serialized.is_valid():
             subject_serialized.save()
@@ -456,7 +422,6 @@ class StudClassSubjectsEditView(APIView):
             stud_class_obj = StudClass.objects.get(stud_class_name = request.data['stud_class_name'])
             subject_obj.stud_class_name = stud_class_obj
 
-        
         if request.data['lab_name'] == '' or request.data['lab_name'] == 'null' or subject_obj.is_lab==False:
             subject_obj.lab_name = None
         else:
@@ -531,8 +496,6 @@ class StudClassManageView(APIView):
         
         timetable_obj = TimeTable.objects.get(stud_class_name=stud_class_obj)
 
-
-
         monday_subs = []
         for index in new_timetable['Monday'].keys():
             monday_subs.append(new_timetable['Monday'][index])
@@ -598,18 +561,6 @@ class StudClassManageView(APIView):
                 lab_timetable_obj.save()
         timetable_obj.friday = friday_subs
         
-        
-        # stud_class_obj.stud_class_name = request.data['stud_class_name']
-
-
-
-        # timetable_obj.monday = [new_timetable['Monday'][index] for index in new_timetable['Monday'].keys()]
-        # timetable_obj.tuesday = [new_timetable['Tuesday'][index] for index in new_timetable['Tuesday'].keys()]
-        # timetable_obj.wednesday = [new_timetable['Wednesday'][index] for index in new_timetable['Wednesday'].keys()]
-        # timetable_obj.thursday = [new_timetable['Thursday'][index] for index in new_timetable['Thursday'].keys()]
-        # timetable_obj.friday = [new_timetable['Friday'][index] for index in new_timetable['Friday'].keys()]
-
-
         print(timetable_obj)
         timetable_obj.save()
         return Response(status=status.HTTP_202_ACCEPTED)
@@ -630,21 +581,9 @@ class DetectFaceView(APIView):
     authentication_classes = []
     parser_classes = [MultiPartParser,FormParser]
     def post(self,request):
-        #Convert querydict object to python dict
-        #request_as_dict = request.data.dict()
+        #Convert json object to python list
         images_to_detect = ujson.loads(request.data['images_to_detect'])
-        #face_photo_b64 = request.data['face_photo_b64']
         stud_class_name = request.data['stud_class_name']
-        #stud_class_name = request_as_dict['stud_class_name']
-        #convert json string to python list
-        #images_to_detect = getImagesToDetectFromRequest(request)
-        #print(images_to_detect)
-        #images_to_detect = ujson.loads(request_as_dict['captured_images'])
-        #print(images_to_detect)
-        filename = 'face_data/'+str(stud_class_name) + '.fac'
-            #detected_id = face_check.detectFaceFromPickleMultiProcess(filename,images_to_detect)
-            #student = Student.objects.get(id=detected_id)
-            #detected_name = student.name
         detected_id = face_check.predictStudentIdFromFace(images_to_detect, stud_class_name)
         if(detected_id==-1):
             student_name = "Unknown"
@@ -680,13 +619,13 @@ class AttendanceCurrentSubjectView(APIView):
             timetable_subject_index = 2
         elif((hour==13 and minutes>=30) or (hour==14 and minutes<30)):
             timetable_subject_index = 3
-        elif((hour==18 and minutes>=30) or (hour==19 and minutes<30)):
+        elif((hour==21 and minutes>=30) or (hour==21 and minutes<30)):
             timetable_subject_index = 4
 
         print(timetable_subject_index)
         
         
-        if(day==0): 
+        if(day==5): 
             subject_id = timetable_obj.monday[timetable_subject_index]
         elif(day==1):
             subject_id = timetable_obj.tuesday[timetable_subject_index]
@@ -852,13 +791,13 @@ class AttendanceRetrieveView(APIView):
     parser_classes = [MultiPartParser,FormParser]
     def get(self,request):
         attendance_objs = Attendance.objects.all()
-        attendances_serialized = AttendanceRetrieveSerializer(attendance_objs,many=True)
+        attendances_serialized = serializers.AttendanceRetrieveSerializer(attendance_objs,many=True)
         return Response(attendances_serialized.data,status=status.HTTP_200_OK)
         
     def post(self,request):
         studclass_obj = StudClass.objects.get(stud_class_name=request.data['stud_class_name'])
         attendance_objs = Attendance.objects.filter(stud_class_name=studclass_obj)
-        attendances_serialized = AttendanceRetrieveSerializer(attendance_objs,many=True)
+        attendances_serialized = serializers.AttendanceRetrieveSerializer(attendance_objs,many=True)
         return Response(attendances_serialized.data,status=status.HTTP_200_OK)
     
 class AttendancePercentageRetrieve(APIView):
@@ -872,7 +811,6 @@ class AttendancePercentageRetrieve(APIView):
         attendance_taken_in_current_month = False
         for attendance in all_attendances:
             current_date = attendance.date
-            # current_month = int(current_date.split('-')[1])
             current_month = int(current_date.month)
             if current_month==month:
                 attendance_taken_in_current_month=True
@@ -901,19 +839,17 @@ class AttendancePercentageRetrieve(APIView):
 class AttendancePrintView(APIView):
     parser_classes = [MultiPartParser,FormParser]
     def post(self,request):
-        # pdf = ujson.dumps(writeAttendanceDataToHtmlandGetPDF(request.data['attendances_to_print']))
-        pdf = writeAttendanceDataToHtmlandGetPDF(request.data['attendances_to_print'])
+        pdf = view_helpers.writeAttendanceDataToHtmlandGetPDF(request.data['attendances_to_print'])
         filename = "Attendance_report.pdf"
-        response = Response(pdf, content_type='application/pdf')
+        response = Response(pdf, content_type='application/pdf',status=status.HTTP_200_OK)
         response['Content-Disposition'] = 'attachment; filename="' + filename + '"'
         return response
-        # return Response(status=status.HTTP_200_OK)
 
 class AcademicBatchRetrieveView(APIView):
     parser_classes = [FormParser,MultiPartParser]
     def get(self,request):
         batch_fields = AcademicBatch.objects.all()
-        batches_serialized = AcademicBatchSerializer(batch_fields,many=True)
+        batches_serialized = serializers.AcademicBatchSerializer(batch_fields,many=True)
         return Response(batches_serialized.data,status=status.HTTP_200_OK)
     
 class AcademicBatchCreateView(APIView):

@@ -7,7 +7,6 @@ class TeacherUserAdmin(admin.ModelAdmin):
 
 admin.site.register(TeacherUser, TeacherUserAdmin)
 admin.site.register(Student,TeacherUserAdmin)
-#admin.site.register(Teacher,TeacherUserAdmin)
 admin.site.register(StudClass,TeacherUserAdmin)
 admin.site.register(Subject,TeacherUserAdmin)
 admin.site.register(TimeTable,TeacherUserAdmin)

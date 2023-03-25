@@ -1,8 +1,47 @@
 from django.db import models
 from datetime import date
-# Create your models here.
 from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
+from django.dispatch import receiver
+from django.urls import reverse
+from django_rest_passwordreset.signals import reset_password_token_created
+from django.core.mail import send_mail
+import socket
+
+
+# function to get local IP 
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(('192.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+local_ip = get_local_ip()
+
+
+back_url = "http://"+str(local_ip)+":8000/api/"
+front_url = "http://"+str(local_ip)+":3000/"
+
+@receiver(reset_password_token_created)
+def password_reset_token_created(sender, instance, reset_password_token, *args, **kwargs):
+
+    email_plaintext_message = "Password Reset Link for " + str(reset_password_token.user.email) + " : " + front_url+ "passwordreset/"+reset_password_token.key + "/" + str(reset_password_token.user.email)
+
+    send_mail(
+        # title:
+        "Password Reset for {title}".format(title="Some website title"),
+        # message:
+        email_plaintext_message,
+        # from:
+        from_email="",
+        # to:
+        recipient_list=[reset_password_token.user.email]
+    )
 
 class TeacherUser(AbstractUser):
 
