@@ -611,21 +611,21 @@ class AttendanceCurrentSubjectView(APIView):
         hour = int(current_date.strftime('%H'))
         minutes = int(current_date.strftime('%M'))
         timetable_subject_index = -1
-        if((hour==2 and minutes>=0) or (hour==10 and minutes<30)):
+        if((hour==9 and minutes>=0) or (hour==10 and minutes<30)):
             timetable_subject_index = 0
         elif((hour==10 and minutes>=30) or (hour==11 and minutes<25)):
             timetable_subject_index = 1
-        elif((hour==11 and minutes>=35) or (hour==12 and minutes<30)):
+        elif((hour==11 and minutes>=35) or (hour==12 and minutes>30)):
             timetable_subject_index = 2
         elif((hour==13 and minutes>=30) or (hour==14 and minutes<30)):
             timetable_subject_index = 3
-        elif((hour==21 and minutes>=30) or (hour==21 and minutes<30)):
+        elif((hour==20 and minutes>=30) or (hour==20 and minutes<30)):
             timetable_subject_index = 4
 
         print(timetable_subject_index)
         
         
-        if(day==5): 
+        if(day==0):
             subject_id = timetable_obj.monday[timetable_subject_index]
         elif(day==1):
             subject_id = timetable_obj.tuesday[timetable_subject_index]
@@ -760,13 +760,13 @@ class AttendanceMarkingView(APIView):
                     verfication_status = 'Already Verified'
                 else:
                     attendance_obj.subject2_att = True
-            elif(hour==11 and minutes>=35 and minutes<=50 and timetable_subject_index==2):
+            elif(hour==12 and minutes>=35 and minutes>=50 and timetable_subject_index==2):
                 if attendance_obj.subject3_att == True:
                     already_marked = True
                     verfication_status = 'Already Verified'
                 else:
                     attendance_obj.subject3_att = True
-            elif(hour==13 and minutes>=30 and minutes<=45 and timetable_subject_index==3):
+            elif(hour==12 and minutes>=30 and minutes<=45 and timetable_subject_index==3):
                 if attendance_obj.subject4_att == True:
                     already_marked = True
                     verfication_status = 'Already Verified'

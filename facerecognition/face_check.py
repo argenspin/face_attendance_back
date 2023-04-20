@@ -326,7 +326,7 @@ def findCurrentMatchedId(index,imageB64,model):
             test_var = int(predicted_id)
         except:
             return -1
-        if most_probable>0.05 and (int(most_probable*100) > int(second_most_probable*100)):
+        if most_probable>0.05 and (most_probable > (second_most_probable)+(second_most_probable*0.4)):
             return predicted_id
         else:
             return -1

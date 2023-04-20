@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'facerecognition',
     'rest_framework_simplejwt.token_blacklist',
+    'django_rest_passwordreset',
 ]
 AUTH_USER_MODEL = 'facerecognition.TeacherUser'
 
@@ -165,8 +166,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'casattendancemain@gmail.com'
-EMAIL_HOST_PASSWORD = 'ycavsjpfyweamsdl'
+EMAIL_HOST_USER = 'argenspin@gmail.com'
+EMAIL_HOST_PASSWORD = 'fxynzjlylawsteoq'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'CAS ADMIN'
