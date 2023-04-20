@@ -166,8 +166,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'argenspin@gmail.com'
-EMAIL_HOST_PASSWORD = 'fxynzjlylawsteoq'
+EMAIL_HOST_USER = '' #Add email id to send mail'
+EMAIL_HOST_PASSWORD = '' #Add email password (App password for gmail)
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'CAS ADMIN'
